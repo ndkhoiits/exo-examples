@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<portlet-app xmlns="http://java.sun.com/xml/ns/portlet/portlet-app_2_0.xsd"
+   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="2.0"
+   xsi:schemaLocation="http://java.sun.com/xml/ns/portlet/portlet-app_2_0.xsd http://java.sun.com/xml/ns/portlet/portlet-app_2_0.xsd">
+   <portlet>
+      <portlet-name>simplecaptcha</portlet-name>
+      <portlet-class>com.khoinguyen.simplecaptcha.example.CaptchaPortlet</portlet-class>
+      <supports>
+         <mime-type>image/png</mime-type>
+      </supports>
+      <portlet-info>
+         <title>Captcha Exaple</title>
+      </portlet-info>
+   </portlet>
+</portlet-app>
