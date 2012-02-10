@@ -21,12 +21,13 @@ package com.khoinguyen.simplecaptcha.example;
 import static nl.captcha.Captcha.NAME;
 
 import nl.captcha.Captcha;
+import nl.captcha.audio.AudioCaptcha;
+import nl.captcha.audio.Sample;
 import nl.captcha.servlet.CaptchaServletUtil;
 
 import java.awt.image.BufferedImage;
 import java.io.IOException;
-import java.io.PrintWriter;
-import java.util.Calendar;
+import java.io.OutputStream;
 
 import javax.portlet.ActionRequest;
 import javax.portlet.ActionResponse;
@@ -35,6 +36,7 @@ import javax.portlet.PortletException;
 import javax.portlet.PortletSession;
 import javax.portlet.PortletURL;
 import javax.portlet.ProcessAction;
+import javax.portlet.RenderMode;
 import javax.portlet.RenderRequest;
 import javax.portlet.RenderResponse;
 import javax.portlet.ResourceRequest;
@@ -51,17 +53,26 @@ public class CaptchaPortlet extends GenericPortlet
 
    protected int _height = 50;
 
-   @Override
-   protected void doView(RenderRequest request, RenderResponse response) throws PortletException, IOException
+   @RenderMode(name = "VIEW")
+   public void viewImage(RenderRequest request, RenderResponse response) throws PortletException, IOException
    {
-      ResourceURL resourceURL = response.createResourceURL();
-      String random = "&amp;v=" + Calendar.getInstance().getTimeInMillis();
-      PortletURL refreshActionURL = response.createActionURL();
-      String imgURL = resourceURL.toString() + random;
-      refreshActionURL.setParameter(ActionRequest.ACTION_NAME, "refresh");
+      _generateURLs(request, response);
 
-      request.setAttribute("refreshURL", refreshActionURL);
-      request.setAttribute("imgURL", imgURL);
+      String jspPath = "/imagecaptcha.jsp";
+      ResourceURL resourceURL = response.createResourceURL();
+      request.setAttribute("resourceURL", resourceURL);
+      String myAction = (String) request.getAttribute("myAction");
+      if (myAction != null)
+      {
+         if (myAction.equals(PortletConstant.CHANGE_IMAGE))
+         {
+            jspPath = "/imagecaptcha.jsp";
+         }
+         else if (myAction.equals(PortletConstant.CHANGE_AUDIO))
+         {
+            jspPath = "/audiocaptcha.jsp";
+         }
+      }
 
       Boolean status = (Boolean) request.getPortletSession().getAttribute("STATUS");
       if (status != null)
@@ -69,41 +80,120 @@ public class CaptchaPortlet extends GenericPortlet
          request.setAttribute("status", status);
       }
 
-      getPortletContext().getRequestDispatcher("/index.jsp").forward(request, response);
+      getPortletContext().getRequestDispatcher(jspPath).forward(request, response);
    }
 
-   @ProcessAction(name = "refresh")
-   public void refreshAction(ActionRequest request, ActionResponse response)
+   private void _generateURLs(RenderRequest request, RenderResponse response)
+   {
+      PortletURL refreshActionURL = response.createActionURL();
+      refreshActionURL.setParameter(ActionRequest.ACTION_NAME, PortletConstant.VALIDATE_IMAGE);
+      request.setAttribute(PortletConstant.VALIDATE_IMAGE, refreshActionURL);
+
+      PortletURL validateActionURL = response.createActionURL();
+      validateActionURL.setParameter(ActionRequest.ACTION_NAME, PortletConstant.VALIDATE_AUDIO);
+      request.setAttribute(PortletConstant.VALIDATE_AUDIO, validateActionURL);
+
+      PortletURL changeImageModeActionURL = response.createActionURL();
+      changeImageModeActionURL.setParameter(ActionRequest.ACTION_NAME, PortletConstant.CHANGE_IMAGE);
+      request.setAttribute(PortletConstant.CHANGE_IMAGE, changeImageModeActionURL);
+
+      PortletURL changeAudioModeActionURL = response.createActionURL();
+      changeAudioModeActionURL.setParameter(ActionRequest.ACTION_NAME, PortletConstant.CHANGE_AUDIO);
+      request.setAttribute(PortletConstant.CHANGE_AUDIO, changeAudioModeActionURL);
+   }
+
+   @ProcessAction(name = PortletConstant.VALIDATE_IMAGE)
+   public void validateImageAction(ActionRequest request, ActionResponse response)
    {
       PortletSession session = request.getPortletSession();
       Captcha captcha = (Captcha) session.getAttribute(Captcha.NAME);
       session.setAttribute("STATUS", (captcha != null && captcha.isCorrect(request.getParameter("answer"))));
-      session.removeAttribute(NAME);
+      session.removeAttribute(Captcha.NAME);
+      request.setAttribute("myAction", PortletConstant.CHANGE_IMAGE);
+   }
+
+   @ProcessAction(name = PortletConstant.VALIDATE_AUDIO)
+   public void validateAudioAction(ActionRequest request, ActionResponse response)
+   {
+      PortletSession session = request.getPortletSession();
+      AudioCaptcha audioCaptcha = (AudioCaptcha) session.getAttribute(AudioCaptcha.NAME);
+      session.setAttribute("STATUS", (audioCaptcha != null && audioCaptcha.isCorrect(request.getParameter("answer"))));
+      session.removeAttribute(AudioCaptcha.NAME);
+      request.setAttribute("myAction", PortletConstant.CHANGE_AUDIO);
+   }
+
+   @ProcessAction(name = PortletConstant.CHANGE_IMAGE)
+   public void changeImageModeAction(ActionRequest request, ActionResponse response)
+   {
+      request.setAttribute("myAction", PortletConstant.CHANGE_IMAGE);
+      request.getPortletSession().removeAttribute("STATUS");
+   }
+
+   @ProcessAction(name = PortletConstant.CHANGE_AUDIO)
+   public void changeAudioModeAction(ActionRequest request, ActionResponse response)
+   {
+      request.setAttribute("myAction", PortletConstant.CHANGE_AUDIO);
+      request.getPortletSession().removeAttribute("STATUS");
    }
 
    @Override
    public void serveResource(ResourceRequest request, ResourceResponse response) throws PortletException, IOException
    {
       PortletSession session = request.getPortletSession();
-      Captcha captcha;
-      if (session.getAttribute(NAME) == null)
+      String type = (String) request.getAttribute("myAction");
+      if (type == null)
+         type = PortletConstant.CHANGE_IMAGE;
+
+      if (type.equals(PortletConstant.CHANGE_IMAGE))
       {
-         captcha = new Captcha.Builder(_width, _height).addText().gimp().addNoise().addBackground().build();
-
-         session.setAttribute(NAME, captcha);
+         // Process for TEXT CAPTCHA
+         Captcha captcha;
+         if (session.getAttribute(Captcha.NAME) == null)
+         {
+            captcha = new Captcha.Builder(_width, _height).addText().gimp().addNoise().addBackground().build();
+            session.setAttribute(NAME, captcha);
+            writeImage(response, captcha.getImage());
+            return;
+         }
+         captcha = (Captcha) session.getAttribute(Captcha.NAME);
          writeImage(response, captcha.getImage());
-
-         return;
+      }
+      else if (type.equals(PortletConstant.CHANGE_AUDIO))
+      {
+         // Process for AUDIO CAPTCHA
+         AudioCaptcha audioCaptcha;
+         if (session.getAttribute(AudioCaptcha.NAME) == null)
+         {
+            audioCaptcha = new AudioCaptcha.Builder().addVoice().addAnswer().build();
+            session.setAttribute(AudioCaptcha.NAME, audioCaptcha);
+            writeAudio(response, audioCaptcha.getChallenge());
+         }
       }
    }
 
    private static void writeImage(ResourceResponse response, BufferedImage bi)
    {
       response.setProperty("Cache-Control", "private,no-cache,no-store");
-      response.setContentType("image/png"); // PNGs allow for transparency. JPGs do not.
+      response.setContentType("image/png");
       try
       {
          CaptchaServletUtil.writeImage(response.getPortletOutputStream(), bi);
+      }
+      catch (IOException e)
+      {
+         e.printStackTrace();
+      }
+   }
+
+   private static void writeAudio(ResourceResponse response, Sample sp)
+   {
+      response.setProperty("Cache-Control", "private,no-cache,no-store");
+      response.setContentType("audio/wave");
+      try
+      {
+         OutputStream os = response.getPortletOutputStream();
+         CaptchaServletUtil.writeAudio(os, sp);
+
       }
       catch (IOException e)
       {
