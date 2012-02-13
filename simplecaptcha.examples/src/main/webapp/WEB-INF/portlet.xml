@@ -7,14 +7,9 @@
       <supports>
          <mime-type>text/html</mime-type>
          <portlet-mode>view</portlet-mode>
-         <portlet-mode>audio</portlet-mode>
-      </supports>
-      <supports>
-         <mime-type>image/png</mime-type>
-         <portlet-mode>view</portlet-mode>
       </supports>
       <portlet-info>
-         <title>Captcha Exaple</title>
+         <title>Captcha Example</title>
       </portlet-info>
    </portlet>
    <container-runtime-option>

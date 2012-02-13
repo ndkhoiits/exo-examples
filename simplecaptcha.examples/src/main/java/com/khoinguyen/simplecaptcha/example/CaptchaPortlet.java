@@ -167,7 +167,10 @@ public class CaptchaPortlet extends GenericPortlet
             audioCaptcha = new AudioCaptcha.Builder().addVoice().addAnswer().build();
             session.setAttribute(AudioCaptcha.NAME, audioCaptcha);
             writeAudio(response, audioCaptcha.getChallenge());
+            return;
          }
+         audioCaptcha = (AudioCaptcha) session.getAttribute(AudioCaptcha.NAME);
+         writeAudio(response, audioCaptcha.getChallenge());
       }
    }
 
@@ -193,7 +196,6 @@ public class CaptchaPortlet extends GenericPortlet
       {
          OutputStream os = response.getPortletOutputStream();
          CaptchaServletUtil.writeAudio(os, sp);
-
       }
       catch (IOException e)
       {
