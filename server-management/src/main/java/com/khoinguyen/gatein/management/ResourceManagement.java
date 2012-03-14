@@ -16,8 +16,24 @@
  * Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
  * 02110-1301 USA, or see the FSF site: http://www.fsf.org.
  */
-
-@Application(defaultController = com.khoinguyen.gatein.management.Application.class)
-
 package com.khoinguyen.gatein.management;
-import org.juzu.Application;
+
+import javax.inject.Inject;
+
+import org.juzu.Path;
+import org.juzu.View;
+
+/**
+ * @author <a href="mailto:khoi.nguyen@exoplatform.com">Khoi NGUYEN DUC</a>
+ * Mar 14, 2012
+ */
+public class ResourceManagement
+{
+   @Inject
+   @Path("resource/index.gtmpl")
+   @View
+   public void index()
+   {
+
+   }
+}

@@ -18,27 +18,22 @@
  */
 package com.khoinguyen.gatein.management;
 
-import java.io.IOException;
-
 import javax.inject.Inject;
 
-import org.juzu.Path;
 import org.juzu.View;
-import org.juzu.template.Template;
 
 /**
  * @author <a href="mailto:khoi.nguyen@exoplatform.com">Khoi NGUYEN DUC</a>
- * Mar 13, 2012
+ * Mar 14, 2012
  */
-public class GateInManagement
+public class Application
 {
    @Inject
-   @Path("index.gtmpl")
-   Template index;
+   ResourceManagement resource;
 
    @View
-   public void index() throws IOException
+   public void index()
    {
-      index.render();
+      resource.index();
    }
 }
